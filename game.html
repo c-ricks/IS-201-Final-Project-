@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Guess the State Game</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', sans-serif;
+            background: linear-gradient(135deg, #a8e6ff, #fff3e0);
+            text-align: center;
+            padding: 60px;
+        }
+        h1 {
+            font-size: 3rem;
+            margin-bottom: 20px;
+            color: #003b73;
+        }
+        input {
+            padding: 12px;
+            width: 60%;
+            font-size: 1.1rem;
+            border: 2px solid #ccc;
+            border-radius: 10px;
+        }
+        button {
+            margin-top: 15px;
+            padding: 12px 25px;
+            font-size: 1.1rem;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            background: #007acc;
+            color: white;
+            transition: 0.2s;
+        }
+        button:hover {
+            background: #005ea3;
+        }
+        #play-again {
+            margin-top: 35px;
+            display: none;
+            background: #28a745;
+        }
+        #play-again:hover {
+            background: #1e7e34;
+        }
+        #result {
+            margin-top: 25px;
+            font-size: 1.4rem;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <h1>Guess the State</h1>
+    <div id="game-box">
+        <div id="guess-container"></div>
+        <div id="clue-container"></div>
+        <button id="next-clue-btn">Reveal Clue</button>
+        <p id="result"></p>
+        <button id="play-again">Play Again</button>
+    </div>
+
+<script>
+const states = ["Alabama","Alaska","Arizona","Arkansas","California","Colorado","Connecticut","Delaware","Florida","Georgia","Hawaii","Idaho","Illinois","Indiana","Iowa","Kansas","Kentucky","Louisiana","Maine","Maryland","Massachusetts","Michigan","Minnesota","Mississippi","Missouri","Montana","Nebraska","Nevada","New Hampshire","New Jersey","New Mexico","New York","North Carolina","North Dakota","Ohio","Oklahoma","Oregon","Pennsylvania","Rhode Island","South Carolina","South Dakota","Tennessee","Texas","Utah","Vermont","Virginia","Washington","West Virginia","Wisconsin","Wyoming"];
+
+let answer;
+let clues = [];
+let clueIndex = 0;
+
+function generateClues(state) {
+    // Simple placeholder clues that get more specific; can be swapped for real data
+    return [
+        "This state is located in the United States.",
+        `It is in the ${getRegion(state)} region of the U.S.`,
+        getBorderClue(state),
+        getPopulationClue(state),
+        `The state capital is ${getCapital(state)}.`
+    ];
+}
+
+function getRegion(state) {
+    // crude region mapping — feel free to expand
+    const west = ["California","Oregon","Washington","Nevada","Idaho","Utah","Arizona","New Mexico","Montana","Wyoming","Colorado"];
+    const northeast = ["Maine","New Hampshire","Vermont","Massachusetts","Rhode Island","Connecticut","New York","New Jersey","Pennsylvania"];
+    const south = ["Delaware","Maryland","Virginia","West Virginia","Kentucky","Tennessee","North Carolina","South Carolina","Georgia","Florida","Alabama","Mississippi","Louisiana","Arkansas","Oklahoma","Texas"];
+    const midwest = ["Ohio","Indiana","Illinois","Michigan","Wisconsin","Minnesota","Iowa","Missouri","North Dakota","South Dakota","Nebraska","Kansas"];
+    if (west.includes(state)) return 'West';
+    if (northeast.includes(state)) return 'Northeast';
+    if (south.includes(state)) return 'South';
+    if (midwest.includes(state)) return 'Midwest';
+    return 'central';
+}
+
+function getBorderClue(state) {
+    // very simple border/population hints — can be improved
+    const islandStates = ["Hawaii"];
+    if (islandStates.includes(state)) return "This state does not border any other state.";
+    if (state === "Alaska") return "This state does not border the contiguous U.S.";
+    return "This state borders at least one other state.";
+}
+
+function getPopulationClue(state) {
+    const large = ["California","Texas","Florida","New York","Pennsylvania","Illinois","Ohio","Georgia"];
+    if (large.includes(state)) return "It is among the more populous states.";
+    const small = ["Wyoming","Vermont","Alaska","North Dakota","South Dakota","Delaware","Montana","Rhode Island"];
+    if (small.includes(state)) return "It is among the less populous states.";
+    return "It has a moderate population size.";
+}
+
+function getCapital(state) {
+    // basic map for capitals used in clues — not exhaustive but covers many states
+    const capitals = {
+        Alabama: 'Montgomery', Alaska: 'Juneau', Arizona: 'Phoenix', Arkansas: 'Little Rock', California: 'Sacramento',
+        Colorado: 'Denver', Connecticut: 'Hartford', Delaware: 'Dover', Florida: 'Tallahassee', Georgia: 'Atlanta',
+        Hawaii: 'Honolulu', Idaho: 'Boise', Illinois: 'Springfield', Indiana: 'Indianapolis', Iowa: 'Des Moines',
+        Kansas: 'Topeka', Kentucky: 'Frankfort', Louisiana: 'Baton Rouge', Maine: 'Augusta', Maryland: 'Annapolis',
+        Massachusetts: 'Boston', Michigan: 'Lansing', Minnesota: 'St. Paul', Mississippi: 'Jackson', Missouri: 'Jefferson City',
+        Montana: 'Helena', Nebraska: 'Lincoln', Nevada: 'Carson City', 'New Hampshire': 'Concord', 'New Jersey': 'Trenton',
+        'New Mexico': 'Santa Fe', 'New York': 'Albany', 'North Carolina': 'Raleigh', 'North Dakota': 'Bismarck', Ohio: 'Columbus',
+        Oklahoma: 'Oklahoma City', Oregon: 'Salem', Pennsylvania: 'Harrisburg', 'Rhode Island': 'Providence', 'South Carolina': 'Columbia',
+        'South Dakota': 'Pierre', Tennessee: 'Nashville', Texas: 'Austin', Utah: 'Salt Lake City', Vermont: 'Montpelier',
+        Virginia: 'Richmond', Washington: 'Olympia', 'West Virginia': 'Charleston', Wisconsin: 'Madison', Wyoming: 'Cheyenne'
+    };
+    return capitals[state] || 'a major city';
+}
+
+function startGame() {
+    answer = states[Math.floor(Math.random() * states.length)];
+    clues = generateClues(answer);
+    clueIndex = 0;
+
+    const guessesEl = document.getElementById('guesses');
+    const cluesEl = document.getElementById('clues');
+    guessesEl.innerHTML = '';
+    cluesEl.innerHTML = '';
+    document.getElementById('playAgain').style.display = 'none';
+
+    // Add initial guess box (no clue yet)
+    guessesEl.appendChild(createGuessBox());
+}
+
+function createGuessBox() {
+    const div = document.createElement('div');
+    div.className = 'guessBox';
+    const input = document.createElement('input');
+    input.type = 'text';
+    input.placeholder = 'Enter your guess';
+    input.className = 'guess-input';
+    const btn = document.createElement('button');
+    btn.textContent = 'Submit Guess';
+    btn.addEventListener('click', () => submitGuess(btn));
+    div.appendChild(input);
+    div.appendChild(btn);
+    return div;
+}
+
+function submitGuess(button) {
+    const box = button.parentElement;
+    const input = box.querySelector('input');
+    const guess = input.value.trim();
+    if (!guess) return;
+
+    // Store the guess in the history (preserve order)
+    const historyEl = document.getElementById('clues');
+    const guessP = document.createElement('p');
+    guessP.className = 'history-guess';
+    guessP.textContent = `You guessed: ${guess}`;
+    historyEl.appendChild(guessP);
+
+    // Disable the input and button we just used so it cannot be resubmitted
+    input.disabled = true;
+    button.disabled = true;
+
+    // Check for correct answer
+    if (guess.toLowerCase() === answer.toLowerCase()) {
+        const win = document.createElement('p');
+        win.className = 'win-msg';
+        win.textContent = `Correct! The state was ${answer}.`;
+        win.style.color = 'green';
+        historyEl.appendChild(win);
+        showPlayAgainOptions();
+        return;
+    }
+
+    // Reveal next clue after an incorrect guess (or any submitted guess)
+    if (clueIndex < clues.length) {
+        const clueP = document.createElement('p');
+        clueP.className = 'clue';
+        clueP.textContent = `Clue ${clueIndex + 1}: ${clues[clueIndex]}`;
+        historyEl.appendChild(clueP);
+        clueIndex++;
+    } else {
+        const msg = document.createElement('p');
+        msg.textContent = 'No more clues.';
+        historyEl.appendChild(msg);
+    }
+
+    // Append a new guess box for the next guess
+    document.getElementById('guesses').appendChild(createGuessBox());
+}
+
+function showPlayAgainOptions() {
+    const el = document.getElementById('playAgain');
+    el.innerHTML = '';
+    el.style.display = 'block';
+
+    const sameBtn = document.createElement('button');
+    sameBtn.textContent = 'Play Again (same difficulty, new state)';
+    sameBtn.addEventListener('click', startGame);
+
+    const sameStateBtn = document.createElement('button');
+    sameStateBtn.textContent = 'Try Again (same state)';
+    sameStateBtn.addEventListener('click', () => {
+        // restart with same answer and fresh clues
+        clues = generateClues(answer);
+        clueIndex = 0;
+        document.getElementById('guesses').innerHTML = '';
+        document.getElementById('clues').innerHTML = '';
+        document.getElementById('guesses').appendChild(createGuessBox());
+        el.style.display = 'none';
+    });
+
+    const hardBtn = document.createElement('button');
+    hardBtn.textContent = 'Hard Mode (skip easy clues)';
+    hardBtn.addEventListener('click', () => {
+        // Reveal only more specific clues by advancing clueIndex
+        clues = generateClues(answer);
+        clueIndex = 2; // skip the first two broad clues
+        document.getElementById('guesses').innerHTML = '';
+        document.getElementById('clues').innerHTML = '';
+        document.getElementById('guesses').appendChild(createGuessBox());
+        el.style.display = 'none';
+    });
+
+    el.appendChild(sameBtn);
+    el.appendChild(sameStateBtn);
+    el.appendChild(hardBtn);
+}
+
+window.addEventListener('load', startGame);
+</script>
+<div id="guesses"></div>
+<div id="clues"></div>
+<div id="playAgain"></div>
+</body>
+</html>
